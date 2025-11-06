@@ -1,0 +1,66 @@
+{
+  "name": "cam-railway-bridge",
+  "version": "1.0.0",
+  "description": "Minimal server for AAV funding.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "4.18.2"
+  }
+}
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// --- Core API Endpoint: Client Upload Confirmation ---
+app.post('/api/confirm-payment', (req, res) => {
+  // This endpoint is hit by the secure contact form on the landing page
+  // The client provides their Transaction ID and Encrypted Upload Link
+
+  const { txid, uploadLink } = req.body;
+
+  if (!txid || !uploadLink) {
+    return res.status(400).send('Error: Missing TXID or Upload Link.');
+  }
+
+  // NOTE: In a full system, the Aetherium Core would verify the TXID now.
+  // For the 48-hour bridge, we trust the client's payment proof screenshot.
+  
+  console.log(`[PAID CLIENT ALERT] TXID: ${txid} | Link: ${uploadLink}`);
+  
+  // This confirms receipt and directs the client to await the final report.
+  res.status(200).send({ 
+    message: "Payment proof received. Your Lightning Security Scan (LSS) is processing. Check secure email for the report within 6 hours." 
+  });
+});
+
+// --- Simple Health Check for Railway ---
+app.get('/', (req, res) => {
+  res.send('Aetherium Core Bridge Active. Do not linger.');
+});
+
+app.listen(port, () => {
+  console.log(`CAM Bridge running on port ${port}`);
+});
+# Use a minimal Node.js base image
+FROM node:18-alpine
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and install dependencies
+COPY package.json .
+RUN npm install
+
+# Copy the server file
+COPY index.js .
+
+# Expose the port (Railway handles mapping this publicly)
+EXPOSE 3000
+
+# Start the server
+CMD [ "npm", "start" ]
